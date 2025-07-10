@@ -12,9 +12,11 @@ use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -23,6 +25,8 @@ class ProductResource extends Resource
     protected static ?string $model = Product::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-gift';
+
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {
@@ -34,11 +38,20 @@ class ProductResource extends Resource
                             TextInput::make('name')
                                 ->required()
                                 ->maxLength(255)
-                                ->live(), // time 16:15 Less 5 (4-ECommerce)
+                                ->live(onBlur: true)
+                                //->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                                ->afterStateUpdated(function (string $operation, $state ,Set $set) {
+                                    if ($operation !== 'create') {
+                                        return;
+                                    }
+                                    $set('slug', Str::slug($state));
+                                }),
                             TextInput::make('slug')
                                 ->required()
                                 ->maxLength(255)
-                                ->disabled(),
+                                ->disabled()
+                                ->dehydrated()
+                                ->unique(Product::class, 'slug', ignoreRecord: true),
                             MarkdownEditor::make('description')
                             ->columnSpanFull()
                             ->fileAttachmentsDirectory('products')
@@ -106,13 +119,56 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('category.name')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('brand.name')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('price')
+                    ->money('EUR')
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('is_featured')
+                    ->boolean()
+                    ->label('Is Featured')
+                    ->alignCenter(),
+                Tables\Columns\IconColumn::make('on_sale')
+                    ->boolean()
+                    ->label('On Sale')
+                    ->alignCenter(),
+                Tables\Columns\IconColumn::make('in_stock')
+                    ->boolean()
+                    ->label('In Stock')
+                    ->alignCenter(),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean()
+                    ->label('Is Active')
+                    ->alignCenter(),
+                //Tables\Columns\TextColumn::make('description')->searchable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                // simple filter by category
+                Tables\Filters\SelectFilter::make('category')
+                    ->relationship('category', 'name'),
+                    //->searchable()
+                    //->preload(),
+                Tables\Filters\SelectFilter::make('brand')
+                    ->relationship('brand', 'name'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
