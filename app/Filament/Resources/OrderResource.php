@@ -100,8 +100,49 @@ class OrderResource extends Resource
 
                     ])->columns(2),
 
-                     Forms\Components\Section::make('Order Items')->schema([]),
-                    // time 19:15 Lesson 6
+                     Forms\Components\Section::make('Order Items')->schema([
+                         Forms\Components\Repeater::make('items')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\Select::make('product_id')
+                                    ->relationship('product', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->distinct()
+                                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                                    ->columnSpan(4)
+                                    ->reactive()
+                                    ->afterStateUpdated(fn($state, Forms\Set $set) => $set('unit_amount', \App\Models\Product::find($state)?->price ?? 0))
+                                    ->afterStateUpdated(fn($state, Forms\Set $set) => $set('total_amount', \App\Models\Product::find($state)?->price ?? 0)),
+
+
+                                Forms\Components\TextInput::make('quantity')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(1)
+                                    ->columnSpan(2)
+                                    ->reactive()
+                                    ->afterStateUpdated(fn ($state, Forms\Set $set, Forms\Get $get) => $set('total_amount', $state * $get('unit_amount'))),
+
+                                Forms\Components\TextInput::make('unit_amount')
+                                    ->numeric()
+                                    ->required()
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->columnSpan(3),
+
+                                Forms\Components\TextInput::make('total_amount')
+                                    ->numeric()
+                                    ->required()
+                                    ->dehydrated()
+                                    ->columnSpan(3),
+                            ])->columns(12),
+
+                         Forms\Components\Placeholder::make('grand_total_placeholder')
+                         // time 34:20 Lesson 6
+                     ]),
 
                 ])->columnSpanFull()
 
