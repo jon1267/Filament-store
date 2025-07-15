@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Number;
 
 class OrderResource extends Resource
 {
@@ -141,7 +142,22 @@ class OrderResource extends Resource
                             ])->columns(12),
 
                          Forms\Components\Placeholder::make('grand_total_placeholder')
-                         // time 34:20 Lesson 6
+                            ->label('Grand Total')
+                            ->content(function (Forms\Get $get, Forms\Set $set) {
+                                $total = 0;
+                                $repeaters = $get('items');
+                                if (!$repeaters) {
+                                    return $total;
+                                }
+                                foreach ($repeaters as $key => $repeater) {
+                                    $total += $get("items.$key.total_amount");
+                                }
+                                $set('grand_total', $total);
+                                return Number::currency($total, $get('currency') ?? 'EUR');
+                            }),
+
+                         Forms\Components\Hidden::make('grand_total')->default(0),
+
                      ]),
 
                 ])->columnSpanFull()
@@ -153,14 +169,61 @@ class OrderResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Customer')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('grand_total')
+                    ->numeric()
+                    ->sortable()
+                    ->money('EUR'), // ->money(fn (Forms\Get $get) => $get('currency') == 'EUR' ? 'EUR' : 'USD'), // this not working
+
+                Tables\Columns\TextColumn::make('payment_method')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('payment_status')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('currency')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('shipping_method')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\SelectColumn::make('status')
+                    ->options([
+                        'new' => 'New',
+                        'processing' => 'Processing',
+                        'shipped' => 'Shipped',
+                        'delivered' => 'Delivered',
+                        'cancelled' => 'Cancelled',
+                    ])
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -184,5 +247,16 @@ class OrderResource extends Resource
             'view' => Pages\ViewOrder::route('/{record}'),
             'edit' => Pages\EditOrder::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    // Orders Finish. Time 00:01 Lesson 7
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return static::getModel()::count() > 10 ? 'danger' : 'success';
     }
 }
