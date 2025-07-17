@@ -34,7 +34,6 @@ class ListOrders extends ListRecords
             'shipped' => Tab::make('Shipped')->query(fn ($query) => $query->where('status', 'shipped')),
             'delivered' => Tab::make('Delivered')->query(fn ($query) => $query->where('status', 'delivered')),
             'canceled' => Tab::make('Canceled')->query(fn ($query) => $query->where('status', 'canceled')),
-            // time: 00:01 Less 9 (8-E)
         ];
     }
 
