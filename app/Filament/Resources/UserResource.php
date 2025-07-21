@@ -42,7 +42,9 @@ class UserResource extends Resource
                     Forms\Components\TextInput::make('password')
                         ->password()
                         ->required()
-                        ->maxLength(255),
+                        ->revealable()
+                        ->visibleOn('create'),
+
                     Forms\Components\DateTimePicker::make('email_verified_at'),
                     Forms\Components\FileUpload::make('avatar')
                         ->image()
