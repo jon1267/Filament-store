@@ -41,9 +41,9 @@ class UserResource extends Resource
                         ->maxLength(255),
                     Forms\Components\TextInput::make('password')
                         ->password()
-                        ->required()
-                        ->revealable()
-                        ->visibleOn('create'),
+                        ->required(fn (string $context): bool => $context === 'create')
+                        ->revealable(),
+                        //->visibleOn('create'),// это скрывает поле в режиме редактирования
 
                     Forms\Components\DateTimePicker::make('email_verified_at'),
                     Forms\Components\FileUpload::make('avatar')

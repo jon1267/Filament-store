@@ -17,4 +17,15 @@ class EditUser extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    // из реквеста удаляем поле password, если оно не заполнено
+    // чтоб не кидало ошибку на пароле при редактировании
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if ($data['password'] === null ) {
+            unset($data['password']);
+        }
+
+        return $data;
+    }
 }
